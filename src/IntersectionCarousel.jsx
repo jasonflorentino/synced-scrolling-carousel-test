@@ -1,24 +1,29 @@
 import { useRef, useEffect, useState } from "react";
 
+const debug = console.log;
+
 /** 0, 0.01, 0.02, ..., 0.98, 0.99, 1 */
 // const thresholds = Array.from({ length: 101 }).map((_, i) => {
 //   return Number((i * 0.01).toFixed(2));
 // });
+
 /** 0, 0.02, 0.04, ..., 0.96, 0.98, 1 */
 const thresholds = Array.from({ length: 51 }).map((_, i) => {
   return Number((i * 0.02).toFixed(2));
 });
 
-const debug = console.log;
-
+/**
+ * we need to know this to properly
+ * measure where snapping points are
+ */
 const GAP = 16;
 
 const styles = {
   ul: {
     display: "flex",
     overflowX: "scroll",
-    width: "85vw",
-    minWidth: "300px",
+    width: "80vw",
+    minWidth: "250px",
     maxWidth: "500px",
     scrollSnapType: "x mandatory",
     position: "relative",
@@ -30,48 +35,8 @@ const styles = {
   },
 };
 
-export const CarouselItem = (props) => {
-  const { children } = props;
-
-  return (
-    <li
-      style={{
-        ...styles.li,
-      }}
-      data-id={props.item.id}
-      onClick={() => {
-        props.setActiveItemId(props.item.id);
-      }}
-    >
-      {children}
-    </li>
-  );
-};
-
 /**
- * Same as CarouselItem. no need for anything different
- * right now.
- * All the styling comes from the consumer.
- */
-export const CarouselItemMarker = (props) => {
-  const { children } = props;
-
-  return (
-    <li
-      style={{
-        ...styles.li,
-      }}
-      data-id={props.item.id}
-      onClick={() => {
-        props.setActiveItemId(props.item.id);
-      }}
-    >
-      {children}
-    </li>
-  );
-};
-
-/**
+ * Carousel
  * matched scroll-snap carousels.
  *
  * monitor scrolling events to know when
@@ -97,12 +62,13 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
   useEffect(() => {
     // ITEMS
     const itemNodes = itemScrollerRef.current.childNodes;
-    itemScrollerRef.itemSize = itemNodes[0].clientWidth + GAP * 2;
+    itemScrollerRef.itemSize = itemNodes[0].offsetWidth + GAP * 2;
 
-    itemScrollerRef.offset =
+    itemScrollerRef.offset = Math.floor(
       itemNodes[0].offsetLeft -
-      itemScrollerRef.current.clientWidth / 2 +
-      itemNodes[0].offsetWidth / 2;
+        itemScrollerRef.current.clientWidth / 2 +
+        itemNodes[0].offsetWidth / 2
+    );
 
     // extra space on ends
     itemNodes[0].style.setProperty(
@@ -118,7 +84,7 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
 
     const markerNodes = itemMarkerRef.current.childNodes;
 
-    itemMarkerRef.itemSize = markerNodes[0].clientWidth + GAP * 2;
+    itemMarkerRef.itemSize = markerNodes[0].offsetWidth + GAP * 2;
 
     // extra space on ends
     markerNodes[0].style.setProperty(
@@ -132,7 +98,7 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
   }, []);
 
   /**
-   * handle observing when the items scroll 
+   * handle observing when the items scroll
    * into the center of scrolling container.
    * This is how we know which item is 'active'
    * (by which is intersecting most with the center)
@@ -140,7 +106,7 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        itemScrollerRef.active = getMaxItersection(
+        itemScrollerRef.active = _getMaxItersection(
           entries,
           itemScrollerRef.active
         );
@@ -196,7 +162,7 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
         "scrollend",
         (e) => {
           debug("scrollend", itemScrollerRef.active?.dataset.id, e);
-          const activeId = Number(itemScrollerRef.active?.dataset.id);
+          const activeId = Number(itemScrollerRef.active?.dataset.id ?? 0);
           setActiveItemId(activeId);
         },
       ],
@@ -204,9 +170,9 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
        * Unfortch, Safari does not support `scrollend` on elements.
        * So before we can update the active ID we need to
        * deterine for ourselves when scrolling has ended.
-       * (ie. when scroll-snap has done its thing and not 
+       * (ie. when scroll-snap has done its thing and not
        * if scroll has ended between items)
-       * 
+       *
        * To do this, we check if the `scrollLeft` value
        * is a multiple of the 'snapping point' location--
        * IF the scrollWidth == numItems * itemWidth,
@@ -228,6 +194,7 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
             scrollLeft,
             itemSize,
             offset,
+            locked: itemScrollerRef.isClickTransitioning,
           });
           /**
            * to protect against trying to set the active ID during
@@ -237,12 +204,13 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
            */
           if (atSnappingPoint && !itemScrollerRef.isClickTransitioning) {
             debug("scroll polyfill scrollend");
-            const activeId = Number(itemScrollerRef.active.dataset.id);
+            const activeId = Number(itemScrollerRef.active?.dataset.id ?? 0);
             setActiveItemId(activeId);
           }
         },
       ],
     ];
+    // TODO: can you feature detect scrollend and only attach the relevant listener?
     if (itemScrollerRef.current) {
       for (const [event, listener] of listeners) {
         itemScrollerRef.current.addEventListener(event, listener);
@@ -348,13 +316,54 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
   );
 }
 
+export function CarouselItem(props) {
+  const { children } = props;
+
+  return (
+    <li
+      style={{
+        ...styles.li,
+      }}
+      data-id={props.item.id}
+      onClick={() => {
+        props.setActiveItemId(props.item.id);
+      }}
+    >
+      {children}
+    </li>
+  );
+}
+
+/**
+ * Same as CarouselItem. no need for anything different
+ * right now.
+ * All the styling comes from the consumer.
+ */
+export function CarouselItemMarker(props) {
+  const { children } = props;
+
+  return (
+    <li
+      style={{
+        ...styles.li,
+      }}
+      data-id={props.item.id}
+      onClick={() => {
+        props.setActiveItemId(props.item.id);
+      }}
+    >
+      {children}
+    </li>
+  );
+}
+
 /**
  * Safari fires IntersectionObserver events late/sporadically.
  * only return a new target el if it registers a significant
- * intersection ratio (>=0.5 ?). Otherwise return the currently 
+ * intersection ratio (>=0.5 ?). Otherwise return the currently
  * active element.
  */
-function getMaxItersection(entries, currActive) {
+function _getMaxItersection(entries, currActive) {
   let max = {
     target: currActive,
     intersectionRatio: 0.5,

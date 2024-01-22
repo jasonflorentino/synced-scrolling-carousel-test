@@ -1,5 +1,5 @@
 /**
- * REACT SNAP CAROUSEL might be to finicky
+ * REACT SNAP CAROUSEL might be too finicky;
  * maybe i've missed something but my setup
  * doesn't quite work as nicely as their examples.
  */
