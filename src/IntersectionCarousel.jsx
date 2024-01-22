@@ -106,14 +106,15 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        itemScrollerRef.active = _getMaxItersection(
+        /** maintain which element is the center one */
+        itemScrollerRef.center = _getMaxItersection(
           entries,
-          itemScrollerRef.active
+          itemScrollerRef.center
         );
         debug(
           "observer",
           entries.length,
-          itemScrollerRef.active?.dataset.id,
+          itemScrollerRef.center?.dataset.id,
           entries.map((entry) => {
             return [entry.target.dataset.id, entry.intersectionRatio].join();
           })
@@ -161,8 +162,8 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
       [
         "scrollend",
         (e) => {
-          debug("scrollend", itemScrollerRef.active?.dataset.id, e);
-          const activeId = Number(itemScrollerRef.active?.dataset.id ?? 0);
+          debug("scrollend", itemScrollerRef.center?.dataset.id, e);
+          const activeId = Number(itemScrollerRef.center?.dataset.id ?? 0);
           setActiveItemId(activeId);
         },
       ],
@@ -190,7 +191,7 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
           const { itemSize, offset } = itemScrollerRef;
           const atSnappingPoint =
             scrollLeft === 0 || scrollLeft % itemSize === offset;
-          debug("scroll", itemScrollerRef.active?.dataset.id, atSnappingPoint, {
+          debug("scroll", itemScrollerRef.center?.dataset.id, atSnappingPoint, {
             scrollLeft,
             itemSize,
             offset,
@@ -204,7 +205,7 @@ export function Carousel({ items, renderItem, renderItemMarkers, startId }) {
            */
           if (atSnappingPoint && !itemScrollerRef.isClickTransitioning) {
             debug("scroll polyfill scrollend");
-            const activeId = Number(itemScrollerRef.active?.dataset.id ?? 0);
+            const activeId = Number(itemScrollerRef.center?.dataset.id ?? 0);
             setActiveItemId(activeId);
           }
         },
