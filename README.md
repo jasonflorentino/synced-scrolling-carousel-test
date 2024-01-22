@@ -6,6 +6,7 @@ Explorations for scrolling carousel that:
 - Snaps items to center.
 - Identifies center item as 'active' item.
 - Supports transform animations for active item.
+- Can be initialized with any active item idx.
 - Syncs active item with thumbnails carousel below.
 - Can indepenently scroll thumbnails and click to to choose next active Item.
 - Works cross browser (Chrome, Firefox, Safari, mobile iOS)
